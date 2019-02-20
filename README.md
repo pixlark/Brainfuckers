@@ -20,3 +20,8 @@ The D interpreter is incomplete.
 
 The Haskell interpreter iteratively passes a BFState element through a pure transformation function to run brainfuck programs.
 
+## Perl
+
+**Finished**
+
+The Perl interpreter was written for `v5.24.1`.
