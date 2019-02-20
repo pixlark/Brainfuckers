@@ -1,0 +1,3 @@
+make:
+	ghc bf.hs
+
