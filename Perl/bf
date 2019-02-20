@@ -1,0 +1,70 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+my $MEMORY_SIZE = 10;
+
+if (@ARGV != 1) {
+	print "Provide one source file\n";
+	exit 1;
+}
+
+open my $file, "<", $ARGV[0] or die "Can't open $ARGV[0]\n";
+my @source = grep { $_ =~ /[+\-<>[\].,]/ } (split //, <$file>);
+my %state = (
+	source_pos => 0,
+	cursor     => 0,
+	memory     => [],
+	loop_stack => [],
+);
+close $file;
+
+for (my $i = 0; $i < $MEMORY_SIZE; $i++) {
+	@{$state{memory}}[$i] = 0;
+}
+
+while ($state{source_pos} < @source) {
+	my $char = @source[$state{source_pos}++];
+	if      ($char eq '+') {
+		@{$state{memory}}[$state{cursor}]++;
+		@{$state{memory}}[$state{cursor}] %= 256;
+	} elsif ($char eq '-') {
+		@{$state{memory}}[$state{cursor}]--;
+		@{$state{memory}}[$state{cursor}] %= 256;
+	} elsif ($char eq '<') {
+		$state{cursor}--;
+		$state{cursor} %= $MEMORY_SIZE;
+	} elsif ($char eq '>') {
+		$state{cursor}++;
+		$state{cursor} %= $MEMORY_SIZE;
+	} elsif ($char eq '.') {
+		print chr(@{$state{memory}}[$state{cursor}]);
+	} elsif ($char eq ',') {
+		my $got_char = getc(STDIN);
+		if (defined $got_char) {
+			@{$state{memory}}[$state{cursor}] = ord($got_char);
+		}
+	} elsif ($char eq '[') {
+		if (@{$state{memory}}[$state{cursor}] == 0) {
+			# Skip to end of loop
+			my $levels = 0;
+			while (1) {
+				my $char = @source[$state{source_pos}++];
+				$levels++ if $char eq '[';
+				if ($char eq ']') {
+					last if ($levels == 0);
+					$levels--;
+				}
+			}
+		} else {
+			push @{$state{loop_stack}}, $state{source_pos} - 1;
+		}
+	} elsif ($char eq ']') {
+		if (@{$state{loop_stack}} == 0) {
+			print "Tried to exit nonexistent loop\n";
+			exit 1;
+		}
+		$state{source_pos} = pop @{$state{loop_stack}};
+	}
+}
